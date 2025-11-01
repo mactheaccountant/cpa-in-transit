@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LECPA Mastery Ledger</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Root Variables (Inspiring "Challenger" Theme) --- */
+        :root {
+            --color-primary: #0a84ff; /* Strong, focused blue */
+            --color-primary-light: #30c5ff; /* Energetic cyan */
+            --color-success: #30d158; /* Vibrant green for 'Mastered' */
+            --color-warning: #ffd60a; /* Bright yellow for 'In Progress' */
+            --color-danger: #ff453a; /* Clear red for 'Weakness' */
+            --color-bg: #1a1a1a; /* Deep, focused dark */
+            --color-surface: #2a2a2a; /* Main element background */
+            --color-surface-light: #3a3a3a; /* Hovers and accents */
+            --color-text: #f5f5f7; /* Clean, readable white */
+            --color-text-muted: #999;
+            --border-color: #444;
+            --border-radius: 12px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 100%; /* Changed for wider view */
+            margin: 0 auto;
+            padding: 0 20px; /* Added padding */
+        }
+        
+        /* --- Motivational Header --- */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(145deg, var(--color-surface), #3a3a3a);
+            border-radius: var(--border-radius);
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--color-text);
+            margin: 0;
+            background: -webkit-linear-gradient(45deg, var(--color-primary-light), var(--color-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header p {
+            font-size: 1.15rem;
+            color: var(--color-text-muted);
+            max-width: 800px;
+            margin: 15px auto 0;
+            line-height: 1.7;
+        }
+
+        h2, h3 {
+            font-weight: 700;
+            color: var(--color-text);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-top: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-text);
+            border-bottom-style: dashed;
+            margin-bottom: 20px;
+        }
+
+        /* --- Dashboard Styles --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .chart-container {
+            background-color: var(--color-surface);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            height: 420px; /* Fixed height */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container canvas {
+            max-height: 320px; 
+            margin-top: auto;
+        }
+        
+        #weakestTopicsList {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            overflow-y: auto;
+            height: 100%;
+            font-size: 0.95rem;
+        }
+
+        #weakestTopicsList li {
+            background-color: var(--color-surface-light);
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 5px solid var(--color-danger);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        #weakestTopicsList li:hover {
+            transform: translateX(5px);
+            background-color: #4a4a4a;
+        }
+        
+        #weakestTopicsList .subject-badge {
+            font-weight: 800;
+            color: var(--color-primary-light);
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        #weakestTopicsList .mastery-badge {
+            font-weight: 700;
+            color: var(--color-warning);
+            margin-left: 10px;
+            flex-shrink: 0;
+            background-color: var(--color-bg);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* --- Form & Controls Styles --- */
+        #addTopicForm, .ledger-controls {
+            background-color: var(--color-surface);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #addTopicForm > div, .ledger-controls > div {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        
+        #addTopicForm div:nth-of-type(3) { /* Description field */
+            flex-basis: 35%; 
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.5);
+            background-color: #1c1c1e;
+        }
+        
+        button {
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 50px; /* Align with inputs */
+            transform: translateY(0);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        button.danger-btn {
+            background: linear-gradient(145deg, #ff4d4d, var(--color-danger));
+            color: white;
+        }
+        
+        button.danger-btn:hover { background: linear-gradient(145deg, #ff6666, #ff5c54); }
+        
+        button.action-btn {
+            background: linear-gradient(145deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+        }
+        
+        button.action-btn:hover { background: linear-gradient(145deg, #0a8bff, #30cfff); }
+
+        /* --- Table Styles --- */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--color-surface);
+            box-shadow: var(--shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background: linear-gradient(180deg, #333, #2a2a2a);
+            color: var(--color-primary-light);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        /* Sticky columns for navigation */
+        th:nth-child(1), td:nth-child(1), /* # */
+        th:nth-child(2), td:nth-child(2), /* Subject */
+        th:nth-child(3), td:nth-child(3), /* Code */
+        th:nth-child(4), td:nth-child(4) { /* Description */
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: var(--color-surface);
+        }
+        
+        th:nth-child(1), td:nth-child(1) { left: 0; min-width: 60px; text-align: center; }
+        th:nth-child(2), td:nth-child(2) { left: 60px; min-width: 80px; }
+        th:nth-child(3), td:nth-child(3) { left: 140px; min-width: 100px; }
+        th:nth-child(4), td:nth-child(4) { 
+            left: 240px; 
+            min-width: 350px; 
+            white-space: normal;
+            font-weight: 600;
+        }
+        
+        thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(3), thead th:nth-child(4) {
+            background: linear-gradient(180deg, #333, #2a2a2a);
+            z-index: 15;
+        }
+
+        tbody tr:nth-child(even) { background-color: var(--color-bg); }
+        tbody tr:hover { background-color: var(--color-surface-light); }
+
+        /* --- Table Input Styles --- */
+        td input, td select {
+            width: 100%;
+            min-width: 120px;
+            box-sizing: border-box;
+            background: transparent;
+            border: 1px solid transparent; /* Invisible border */
+            color: var(--color-text);
+            padding: 8px;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        
+        td input:focus, td select:focus {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-primary);
+        }
+        
+        /* Specific Column Styling */
+        td input[type="text"] { min-width: 300px; }
+        td input[type="date"] { min-width: 150px; }
+        td input[type="number"] { min-width: 80px; text-align: center; }
+        td .notes-input { min-width: 300px; white-space: normal; }
+        
+        /* Practice Score Columns */
+        th:nth-child(n+7):nth-child(-n+11), td:nth-child(n+7):nth-child(-n+11) {
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        /* Avg. Score Column */
+        th:nth-child(12), td:nth-child(12) {
+            min-width: 100px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .avg-score {
+            color: var(--color-primary-light);
+            background-color: var(--color-surface-light);
+            padding: 5px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            width: 70px;
+        }
+
+        /* --- Dynamic Mastery Level Colors --- */
+        td[data-mastery-level="1"] select { background-color: #4d1f25; color: #ff8a8a; font-weight: 600; }
+        td[data-mastery-level="2"] select { background-color: #5d3a15; color: #ffbe8a; font-weight: 600; }
+        td[data-mastery-level="3"] select { background-color: #666320; color: #fff8a0; font-weight: 600; }
+        td[data-mastery-level="4"] select { background-color: #2c5a41; color: #a0ffd1; font-weight: 600; }
+        td[data-mastery-level="5"] select { background-color: #214a68; color: #a0d1ff; font-weight: 600; }
+        
+        td[data-mastery-level="1"] select:focus { border-color: var(--color-danger); }
+        td[data-mastery-level="2"] select:focus { border-color: #fd7e14; }
+        td[data-mastery-level="3"] select:focus { border-color: var(--color-warning); }
+        td[data-mastery-level="4"] select:focus { border-color: var(--color-success); }
+        td[data-mastery-level="5"] select:focus { border-color: var(--color-primary); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <h1>Forge Your Future, CPA ⚔️</h1>
+            <p>This isn't just a tracker. It's your personal **Ledger of Mastery**.
+            <br>Every topic you master is an asset you've built. Every challenge you overcome is equity in your future.
+            <br>The journey is tough, but you are tougher. **Now, let's get to work.**
+            </p>
+        </header>
+
+        <h2>📈 Your Knowledge "Financial Statements"</h2>
+        <div class="dashboard-grid">
+            <div class="chart-container">
+                <h3>Overall Mastery (Topics Started)</h3>
+                <canvas id="overallProgressChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Progress by Subject (% Started)</h3>
+                <canvas id="subjectProgressChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Mastery Level Distribution</h3>
+                <canvas id="masteryDistributionChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>🎯 "Internal Control Deficiencies" (Priority Topics)</h3>
+                <ul id="weakestTopicsList">
+                </ul>
+            </div>
+        </div>
+
+        <h2>✍️ Add New Topic (Your "Journal Entry")</h2>
+        <form id="addTopicForm">
+            <div>
+                <label for="newSubject">Subject</label>
+                <select id="newSubject">
+                    <option value="FAR">FAR</option>
+                    <option value="AFAR">AFAR</option>
+                    <option value="MS">MS</option>
+                    <option value="AUD">AUD</option>
+                    <option value="TAX">TAX</option>
+                    <option value="RFBT">RFBT</option>
+                </select>
+            </div>
+            <div>
+                <label for="newTopicCode">Topic Code</label>
+                <input type="text" id="newTopicCode" placeholder="e.g., 10.0" required>
+            </div>
+            <div>
+                <label for="newDescription">Topic Description</label>
+                <input type="text" id="newDescription" placeholder="e.g., New Special Topic" required>
+            </div>
+            <div>
+                <label for="newMateriality">Materiality (1-3)</label>
+                <select id="newMateriality">
+                    <option value="1">1 (Low)</option>
+                    <option value="2" selected>2 (Medium)</option>
+                    <option value="3">3 (High)</option>
+                </select>
+            </div>
+            <button type="submit" class="action-btn">Add Topic</button>
+        </form>
+
+        <div class="ledger-controls">
+            <div>
+                <label for="subjectFilter">Filter by Subject</label>
+                <select id="subjectFilter">
+                    <option value="ALL">Show All Subjects</option>
+                    <option value="FAR">FAR (Financial Accounting & Reporting)</option>
+                    <option value="AFAR">AFAR (Advanced Financial Acctg & Rptg)</option>
+                    <option value="MS">MS (Management Services)</option>
+                    <option value="AUD">AUD (Auditing)</option>
+                    <option value="TAX">TAX (Taxation)</option>
+                    <option value="RFBT">RFBT (Regulatory Framework)</option>
+                </select>
+            </div>
+            <button class="danger-btn" id="clearAllData">Reset All Data</button>
+        </div>
+        
+        <h2>📚 Mastery Ledger (Your "General Ledger")</h2>
+        <div class="table-container">
+            <table id="ledgerTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Subject</th>
+                        <th>Code</th>
+                        <th>Topic Description</th>
+                        <th>Materiality (1-3)</th>
+                        <th>Phase 1: First Pass (Date)</th>
+                        <th>P1 (%)</th>
+                        <th>P2 (%)</th>
+                        <th>P3 (%)</th>
+                        <th>P4 (%)</th>
+                        <th>P5 (%)</th>
+                        <th>Avg. Score</th>
+                        <th>Phase 3: Mastery (1-5)</th>
+                        <th>Review 1 (Date)</th>
+                        <th>Review 2 (Date)</th>
+                        <th>Review 3 (Date)</th>
+                        <th>Notes / Key Areas</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="ledgerBody">
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+<script>
+    // --- DEFAULT TOPICS (PRE-POPULATED WITH ALL 6 SUBJECTS) ---
+    const defaultTopics = [
+        // --- FINANCIAL ACCOUNTING AND REPORTING (FAR) ---
+        { id: 'far-1.1', subject: 'FAR', topicCode: '1.1', description: 'Standard-Setting Bodies (IASB, IFRIC, FRSC, PIC)', notes: 'History, Development, Functions' },
+        { id: 'far-1.2', subject: 'FAR', topicCode: '1.2', description: 'Regulation & Environment of Accounting Profession', notes: 'BOA, APO, Sectors of practice' },
+        { id: 'far-2.1', subject: 'FAR', topicCode: '2.1', description: 'The Conceptual Framework for Financial Reporting', notes: 'Objective, Qualitative, Elements, Capital Concepts' },
+        { id: 'far-2.2', subject: 'FAR', topicCode: '2.2', description: 'The Accounting Process', notes: 'Steps, Journals/Ledgers, Acctg Cycle (Worksheet, AJE, Closing)' },
+        { id: 'far-2.3.1-2', subject: 'FAR', topicCode: '2.3.1-2', description: 'Presentation of FS (SFP)', notes: 'General Features, Classified SFP, Elements' },
+        { id: 'far-2.3.3', subject: 'FAR', topicCode: '2.3.3', description: 'Statement of Comprehensive Income', notes: 'Nature/Function of Expense, Continuing Ops, Discontinued Ops' },
+        { id: 'far-2.3.4', subject: 'FAR', topicCode: '2.3.4', description: 'Statement of Changes in Equity', notes: '' },
+        { id: 'far-2.3.5', subject: 'FAR', topicCode: '2.3.5', description: 'Statement of Cash Flows', notes: 'Sections, Direct & Indirect Method' },
+        { id: 'far-2.3.6', subject: 'FAR', topicCode: '2.3.6', description: 'Notes to the Financial Statements', notes: '' },
+        { id: 'far-2.3.7', subject: 'FAR', topicCode: '2.3.7', description: 'Earnings Per Share (EPS)', notes: 'Basic EPS, Diluted EPS' },
+        { id: 'far-3.1', subject: 'FAR', topicCode: '3.1', description: 'Cash', notes: 'Nature, Bank Reco, Petty Cash Fund' },
+        { id: 'far-3.2.1-2', subject: 'FAR', topicCode: '3.2.1-2', description: 'Financial Assets at FVPL / FVOCI', notes: 'Initial/Subsequent Measurement, Reclassification' },
+        { id: 'far-3.2.3', subject: 'FAR', topicCode: '3.2.3', description: 'Financial Assets at Amortized Cost', notes: 'Trade Receivables (Allowance, Factoring), Investment in Bonds' },
+        { id: 'far-3.2.4', subject: 'FAR', topicCode: '3.2.4', description: 'Investment in Associates and Joint Venture', notes: '' },
+        { id: 'far-4.1', subject: 'FAR', topicCode: '4.1', description: 'Inventories', notes: 'Nature, Cost, Assumptions, LCNRV, Estimation (Gross Profit, Retail)' },
+        { id: 'far-4.2', subject: 'FAR', topicCode: '4.2', description: 'Property, Plant, and Equipment (PPE)', notes: 'Cost, Borrowing Costs, Subsequent Exp, Cost Method (Depr.), Reval, Impairment, Disposal' },
+        { id: 'far-4.3', subject: 'FAR', topicCode: '4.3', description: 'Investment Property', notes: 'Nature, Cost, Cost Method, Fair Value Method, Derecognition' },
+        { id: 'far-4.4', subject: 'FAR', topicCode: '4.4', description: 'Intangible Assets', notes: 'Nature, Cost, Subsequent Exp, Finite/Indefinite Lives, Impairment' },
+        { id: 'far-4.5', subject: 'FAR', topicCode: '4.5', description: 'Biological Assets', notes: 'Nature, Bearer Plants, Cost, Subsequent Measurement' },
+        { id: 'far-4.6', subject: 'FAR', topicCode: '4.6', description: 'Non-current Assets Held for Sale', notes: 'Criteria, Measurement, Reclassification' },
+        { id: 'far-4.7', subject: 'FAR', topicCode: '4.7', description: 'Prepaid Expenses and Other Assets', notes: '' },
+        { id: 'far-5.0', subject: 'FAR', topicCode: '5.0', description: 'Financial Liabilities', notes: 'Classification, Recognition, Debt Issue Cost, Effective Interest, Troubled Debt' },
+        { id: 'far-6.0', subject: 'FAR', topicCode: '6.0', description: 'Non-financial Liabilities, Provisions, Contingencies', notes: 'Customer Loyalty, Warranties, Unearned Revenue, Other Provisions' },
+        { id: 'far-7.1-2', subject: 'FAR', topicCode: '7.1-2', description: 'Share Capital & Retained Earnings', notes: 'Issuance, Treasury, Retirement, Prior Period Errors, Dividends, Quasi-Reorg' },
+        { id: 'far-7.3-4', subject: 'FAR', topicCode: '7.3-4', description: 'OCI and Book Value Per Share', notes: 'Cumulative OCI, BVPS Computation' },
+        { id: 'far-8.1', subject: 'FAR', topicCode: '8.1', description: 'Share-based Payments', notes: 'Equity-settled, Cash-settled, Alternative' },
+        { id: 'far-8.2', subject: 'FAR', topicCode: '8.2', description: 'Leases', notes: 'Lessee (RUA, Lease Liability), Lessor (Direct, Dealer, Operating), Sale-Leaseback' },
+        { id: 'far-8.3', subject: 'FAR', topicCode: '8.3', description: 'Income Tax', notes: 'Acctg vs Taxable Profit, Deferred Tax (DTL/DTA), Presentation' },
+        { id: 'far-8.4', subject: 'FAR', topicCode: '8.4', description: 'Employee Benefits', notes: 'Defined Benefit Plan, Defined Contribution Plan' },
+        { id: 'far-8.5', subject: 'FAR', topicCode: '8.5', description: 'Interim Reporting', notes: 'Purpose, Components, Recognition' },
+        { id: 'far-8.6', subject: 'FAR', topicCode: '8.6', description: 'Operating Segments', notes: 'Identifying segments, Reporting info' },
+        { id: 'far-9.0', subject: 'FAR', topicCode: '9.0', description: 'Other Reporting Frameworks', notes: 'PFRS for SMEs, Small Entities, Microenterprises' },
+
+        // --- ADVANCED FINANCIAL ACCOUNTING AND REPORTING (AFAR) ---
+        { id: 'afar-1.0', subject: 'AFAR', topicCode: '1.0', description: 'Partnership Accounting', notes: 'Formation, Operation, Dissolution (Admission, Withdrawal), Liquidation (Lump-sum, Installment)' },
+        { id: 'afar-2.0', subject: 'AFAR', topicCode: '2.0', description: 'Corporate Liquidation', notes: 'Statement of Affairs, Deficiency, Realization & Liquidation' },
+        { id: 'afar-3.0', subject: 'AFAR', topicCode: '3.0', description: 'Joint Arrangements (PFRS 11)', notes: 'Joint Operations, Joint Venture (Equity Method)' },
+        { id: 'afar-4.1.1-2', subject: 'AFAR', topicCode: '4.1.1-2', description: 'Revenue Recognition (PFRS 15) - 5 Steps & Other Issues', notes: '5-Step Model, Right of Return, Principal-Agent, Upfront Fees, Royalties, Repurchase, Gift Cards' },
+        { id: 'afar-4.1.2.7-8', subject: 'AFAR', topicCode: '4.1.2.7-8', description: 'PFRS 15 - Consignment & Bill-and-Hold', notes: 'Consignment Arrangements, Bill-and-Hold' },
+        { id: 'afar-4.1.2.9', subject: 'AFAR', topicCode: '4.1.2.9', description: 'PFRS 15 - Long-term Construction Contracts', notes: 'Percentage of Completion (Input/Output), Contract Asset/Liability' },
+        { id: 'afar-4.1.2.10', subject: 'AFAR', topicCode: '4.1.2.10', description: 'PFRS 15 - Franchise Operations', notes: 'Initial Franchise Fee, Continuing Franchise Fee' },
+        { id: 'afar-4.1.2.11', subject: 'AFAR', topicCode: '4.1.2.11', description: 'PFRS 15 - Accounting for Consignment Sales', notes: 'Amount Remitted, Ending Inventory, Net Income' },
+        { id: 'afar-5.0', subject: 'AFAR', topicCode: '5.0', description: 'Home Office, Branch and Agency Transactions', notes: 'General/Special Procedures, Inter-branch, Reconciliation, Combined FS' },
+        { id: 'afar-6.0', subject: 'AFAR', topicCode: '6.0', description: 'Business Combination (PFRS 3)', notes: 'Acquisition Method, Consideration, Goodwill/Gain' },
+        { id: 'afar-7.0', subject: 'AFAR', topicCode: '7.0', description: 'Separate Financial Statements (PAS 27)', notes: 'Investment in Sub/Assoc/JV (Cost, PFRS 9), Dividends' },
+        { id: 'afar-8.0', subject: 'AFAR', topicCode: '8.0', description: 'Consolidated Financial Statements (PFRS 10)', notes: 'Consolidation Procedures, Intercompany Transactions, NCI, Consolidated NI/RE' },
+        { id: 'afar-9.0', subject: 'AFAR', topicCode: '9.0', description: 'Derivatives and Hedging Accounting (PFRS 9)', notes: 'Forwards, Futures, Options, Fair Value Hedge, Cash Flow Hedge' },
+        { id: 'afar-10.0', subject: 'AFAR', topicCode: '10.0', description: 'Translation of Foreign Currency FS (PAS 21/29)', notes: 'Closing Rate Method, Remeasurement, Hyperinflation (Restatement)' },
+        { id: 'afar-11.0', subject: 'AFAR', topicCode: '11.0', description: 'Not-for-Profit Organizations', notes: 'VHWO, Hospitals, Colleges/Universities, Other NPOs' },
+        { id: 'afar-12.0', subject: 'AFAR', topicCode: '12.0', description: 'Government Accounting - General Fund', notes: 'Basic Concepts, Budget Process, GAM, Journal Entries' },
+        { id: 'afar-13.1-2', subject: 'AFAR', topicCode: '13.1-2', description: 'Cost Acctg - Job-Order Costing', notes: 'Cost Systems, Journal Entries, GM/GS, Scrap/Waste/Spoilage' },
+        { id: 'afar-13.3', subject: 'AFAR', topicCode: '13.3', description: 'Cost Acctg - Process Costing', notes: 'Journal Entries, Cost of Prod Report (FIFO, Average), Lost Units (Normal, Abnormal)' },
+        { id: 'afar-13.4', subject: 'AFAR', topicCode: '13.4', description: 'Cost Acctg - Backflush Costing (JIT)', notes: 'Journal Entries, Cost Accumulation' },
+        { id: 'afar-13.5', subject: 'AFAR', topicCode: '13.5', description: 'Cost Acctg - Activity-Based Costing (ABC)', notes: 'Traditional vs ABC, Activity Levels, Cost Pools/Drivers' },
+        { id: 'afar-13.6', subject: 'AFAR', topicCode: '13.6', description: 'Cost Acctg - Joint and By-Products', notes: 'Allocating Joint Costs (Market Value, Unit, Wtd Avg), By-Product Treatment' },
+        { id: 'afar-13.7', subject: 'AFAR', topicCode: '13.7', description: 'Cost Acctg - Service Cost Allocation', notes: 'Direct, Step-down, Reciprocal' },
+        { id: 'afar-14.1', subject: 'AFAR', topicCode: '14.1', description: 'Other Topics - Insurance Contracts (PFRS 17)', notes: 'Basic knowledge of PFRS 17' },
+        { id: 'afar-14.2', subject: 'AFAR', topicCode: '14.2', description: 'Other Topics - Service Concession (PFRIC 12)', notes: 'Financial Asset, Intangible Asset' },
+
+        // --- MANAGEMENT SERVICES (MS) ---
+        { id: 'ms-1.1', subject: 'MS', topicCode: '1.1', description: 'Management Accounting - Objectives, Role, Scope', notes: 'Functions, MA vs FA/CA, Controller/Treasurer, Trends' },
+        { id: 'ms-1.2.1', subject: 'MS', topicCode: '1.2.1', description: 'Cost Terms, Concepts, and Behavior', notes: 'Classification, Behavior (VF,F,M), Splitting Mixed Cost (Hi-Low, Regression), Prediction' },
+        { id: 'ms-1.2.2', subject: 'MS', topicCode: '1.2.2', description: 'Cost-Volume-Profit (CVP) Analysis', notes: 'Assumptions, Breakeven, Target Profit, Sensitivity, Sales Mix, Margin of Safety, DOL' },
+        { id: 'ms-1.2.3', subject: 'MS', topicCode: '1.2.3', description: 'Standard Costing and Variance Analysis', notes: 'Material (Price, Qty, Mix, Yield), Labor (Rate, Eff, Mix, Yield), FOH (2/3/4-way)' },
+        { id: 'ms-1.2.4', subject: 'MS', topicCode: '1.2.4', description: 'Variable vs. Absorption Costing', notes: 'Product/Period Cost, Inventory, Reconciliation of Income' },
+        { id: 'ms-1.2.5', subject: 'MS', topicCode: '1.2.5', description: 'Financial Planning and Budgets', notes: 'Master Budget (Op, Fin), Types (Static, Flex, Zero-based), Variance Analysis' },
+        { id: 'ms-1.3.1', subject: 'MS', topicCode: '1.3.1', description: 'Responsibility Accounting and Transfer Pricing', notes: 'Decentralization, Responsibility Centers (C,R,P,I), Segmented IS, ROI, Residual Income, EVA, Transfer Pricing Schemes' },
+        { id: 'ms-1.3.2', subject: 'MS', topicCode: '1.3.2', description: 'Balanced Scorecard', notes: 'Nature, Perspectives, Financial/Non-financial Measures' },
+        { id: 'ms-1.4.1', subject: 'MS', topicCode: '1.4.1', description: 'Relevant Costing and Differential Analysis', notes: 'Relevant Costs, Opp Costs, Decision Types (Make/Buy, Accept/Reject, Drop, Sell/Process)' },
+        { id: 'ms-1.4.2-4', subject: 'MS', topicCode: '1.4.2-4', description: 'Decision Making - Quantitative', notes: 'Probability Analysis (EV), Decision Tree, Linear Programming (Graphic, Algebraic)' },
+        { id: 'ms-2.1', subject: 'MS', topicCode: '2.1', description: 'Financial Management - Objectives and Scope', notes: 'Nature, Purpose, Role of Fin Manager' },
+        { id: 'ms-2.2.1', subject: 'MS', topicCode: '2.2.1', description: 'Financial Statement Analysis', notes: 'Vertical, Horizontal, Cash Flow, Ratios (L,S,A,P,G), Du Pont, AFN' },
+        { id: 'ms-2.2.2.1-3', subject: 'MS', topicCode: '2.2.2.1-3', description: 'Working Capital - Cash Management', notes: 'Concepts, Policies, Cash Conversion Cycle, Optimal Balance, Float' },
+        { id: 'ms-2.2.2.4', subject: 'MS', topicCode: '2.2.2.4', description: 'Working Capital - Receivables Management', notes: 'Investment in AR, Incremental Analysis, Credit Policies' },
+        { id: 'ms-2.2.2.5', subject: 'MS', topicCode: '2.2.2.5', description: 'Working Capital - Inventory Management', notes: 'Costs (Carrying, Ordering), EOQ, Safety Stock, Re-order Point' },
+        { id: 'ms-2.2.2.6-7', subject: 'MS', topicCode: '2.2.2.6-7', description: 'Working Capital - Short-Term Funds', notes: 'Sources (Trade Credit, Bank Loans, etc.), Cost of Funds (Trade Credit, Effective/Nominal)' },
+        { id: 'ms-2.2.3', subject: 'MS', topicCode: '2.2.3', description: 'Capital Budgeting', notes: 'Factors, Non-discounted (Payback, ARR), Discounted (NPV, IRR, PI), Project Screening/Ranking, Sensitivity' },
+        { id: 'ms-2.2.4', subject: 'MS', topicCode: '2.2.4', description: 'Risks and Leverage', notes: 'Types (Business, Financial), Measures (Stdev, CoeffVar), Degree (Op, Fin, Total)' },
+        { id: 'ms-2.2.5', subject: 'MS', topicCode: '2.2.5', description: 'Capital Structure and Long-Term Financing', notes: 'Concepts, Sources, Cost of Capital (Debt, PS, Equity, WACC, Marginal)' },
+        { id: 'ms-2.2.6', subject: 'MS', topicCode: '2.2.6', description: 'Financial Markets', notes: 'Money Markets (Instruments), Capital Markets (Fixed Income, Stock Market, Valuation)' },
+        { id: 'ms-3.1', subject: 'MS', topicCode: '3.1', description: 'Macroeconomics', notes: 'GDP, Business Cycle, Unemployment, Inflation, Fiscal/Monetary Policy, Int\'l Trade' },
+        { id: 'ms-3.2', subject: 'MS', topicCode: '3.2', description: 'Microeconomics', notes: 'Supply, Demand, Equilibrium, Elasticity, Market Structure, Cost Functions' },
+
+        // --- AUDITING (AUD) ---
+        { id: 'aud-1.1', subject: 'AUD', topicCode: '1.1', description: 'Theory - Fundamentals of Auditing & Assurance', notes: 'Assurance Engagements (Nature, Types - Audit, Review), Auditing (Nature, Types - FS, Op, Comp; Ext, Int, Gov)' },
+        { id: 'aud-1.2', subject: 'AUD', topicCode: '1.2', description: 'Theory - Risk-based Audit (Planning)', notes: 'Overview, Pre-engagement, Planning (Business, Analytical, Materiality, Risk, Audit Plan)' },
+        { id: 'aud-1.3', subject: 'AUD', topicCode: '1.3', description: 'Theory - Understanding Entity, IC & Risk Assessment', notes: 'Industry/Regulatory, Internal Control (Concepts, Assessment, Test of Controls), Risk Assessment (Procedures, Fraud, Significant Risks)' },
+        { id: 'aud-1.4', subject: 'AUD', topicCode: '1.4', description: 'Theory - Audit Objectives, Procedures, Evidence, Docu', notes: 'Nature, Evidential Matters, Procedures/Techniques, Working Papers' },
+        { id: 'aud-1.5', subject: 'AUD', topicCode: '1.5', description: 'Theory - Completing the Audit / Post-Audit', notes: 'Overall Review, Related Party, Subsequent Events, Going Concern, Rep Letter, Post-Audit (Facts, Omitted Procs)' },
+        { id: 'aud-1.6', subject: 'AUD', topicCode: '1.6', description: 'Theory - Reports on Audited FS', notes: 'Unqualified (Elements), Modified (Matters not affecting/affecting opinion), Comparatives, Key Audit Matters' },
+        { id: 'aud-1.7', subject: 'AUD', topicCode: '1.7', description: 'Theory - Auditing in a CIS Environment', notes: 'IC in CIS (General, App), Stand-alone/On-line, CAATs, E-commerce' },
+        { id: 'aud-1.8', subject: 'AUD', topicCode: '1.8', description: 'Theory - Attestation & Other Services', notes: 'Special Purpose (Other basis, Component), Prospective FI, Review, Agreed-Upon, Compilation' },
+        { id: 'aud-2.1', subject: 'AUD', topicCode: '2.1', description: 'Practice - Governance, Ethics, Quality Mgt', notes: 'Corp Gov, Ethics, System of Quality Mgt (Elements), Regulatory' },
+        { id: 'aud-2.2', subject: 'AUD', topicCode: '2.2', description: 'Practice - Planning & Risk Assessment', notes: 'Acceptance, Strategy, Materiality, Business Processes (O2C, P2P, etc.), Risk Assessment (Inherent, IC, Deficiencies)' },
+        { id: 'aud-2.3', subject: 'AUD', topicCode: '2.3', description: 'Practice - Risk Response', notes: 'Audit Plan, Extent of Testing, Documentation (WPs, Adjusting Entries), Written Reps' },
+        { id: 'aud-2.4', subject: 'AUD', topicCode: '2.4', description: 'Practice - Audit Communication & Reporting', notes: 'Evaluating Evidence, Communicating (w/ Governance), Preparing Report (Modifications, Emphasis)' },
+
+        // --- REGULATORY FRAMEWORK FOR BUSINESS TRANSACTIONS (RFBT) ---
+        { id: 'rfbt-1.1', subject: 'RFBT', topicCode: '1.1', description: 'Obligations', notes: 'Definition, Sources, Kinds (Pure, Solidary, etc.), Circumstances (Fraud, Negligence), Extinguishment' },
+        { id: 'rfbt-1.2', subject: 'RFBT', topicCode: '1.2', description: 'Contracts', notes: 'General, Requisites (Consent, Object, Cause), Forms, Interpretation, Defective (Resistible, Voidable, Unenforceable, Void)' },
+        { id: 'rfbt-1.3', subject: 'RFBT', topicCode: '1.3', description: 'Sales', notes: 'Nature, Requisites, Earnest vs Option, Warranties (Express, Implied), Installment (Recto, Maceda, PD 957), Extinguishment (Redemption)' },
+        { id: 'rfbt-1.4', subject: 'RFBT', topicCode: '1.4', description: 'Credit Transactions', notes: 'Pledge, Real Mortgage, Chattel Mortgage (Similarities, Requisites, Pactum Commissorium, Extinguishment)' },
+        { id: 'rfbt-2.0', subject: 'RFBT', topicCode: '2.0', description: 'Bouncing Checks (BP 22)', notes: 'Requisites, Evidence, Comparison with Estafa' },
+        { id: 'rfbt-3.0', subject: 'RFBT', topicCode: '3.0', description: 'Consumer Protection', notes: 'Quality/Safety, Deceptive Sales, Warranty, Labelling, Rights (Price Tag, Lemon Law)' },
+        { id: 'rfbt-4.0', subject: 'RFBT', topicCode: '4.0', description: 'Financial Rehabilitation and Insolvency (FRIA)', notes: 'Suspension of Payments, Rehabilitation (Types, Commencement, Receiver, Plan), Liquidation (Types, Order, Liquidator)' },
+        { id: 'rfbt-5.0', subject: 'RFBT', topicCode: '5.0', description: 'Philippine Competition Act', notes: 'Prohibited Acts (Anti-comp. agreements, Abuse of dominance, Prohibited mergers), Covered Transactions (Thresholds)' },
+        { id: 'rfbt-6.0', subject: 'RFBT', topicCode: '6.0', description: 'Government Procurement Law (RA 9184)', notes: 'Principles, Scope, Procurement Procedures (Bidding, Eval, Post-qual, Award), Alternative Methods' },
+        { id: 'rfbt-7.1', subject: 'RFBT', topicCode: '7.1', description: 'Partnerships', notes: 'Nature, Kinds, Formalities, Management, Obligations, Rights, Dissolution, Limited Partnership' },
+        { id: 'rfbt-7.2.1-6', subject: 'RFBT', topicCode: '7.2.1-6', description: 'Corporations - Definition, Personality, Capital, Incorp', notes: 'Classes, Nationality, Piercing Veil, Capital Structure (Shares), Incorporation (Promoter, AOI, By-laws)' },
+        { id: 'rfbt-7.2.7', subject: 'RFBT', topicCode: '7.2.7', description: 'Corporations - Corporate Powers', notes: 'General/Specific, Extend Term, Inc/Dec Capital, Sell Assets, Dividends, Ultra Vires, Trust Fund Doctrine' },
+        { id: 'rfbt-7.2.8', subject: 'RFBT', topicCode: '7.2.8', description: 'Corporations - Stockholders and Members', notes: 'Rights (Mgt, Proxy, Voting Trust, Appraisal, Inspect, Dividends), Suits (Indiv, Rep, Deriv), Meetings' },
+        { id: 'rfbt-7.2.9', subject: 'RFBT', topicCode: '7.2.9', description: 'Corporations - Board of Directors and Trustees', notes: 'Powers, Qualif, Election, Removal, Vacancies, Compensation, Disloyalty, Liabilities, Meetings' },
+        { id: 'rfbt-7.2.10', subject: 'RFBT', topicCode: '7.2.10', description: 'Corporations - Capital Affairs', notes: 'Cert of Stock, Watered Stocks, Delinquent Shares, Alienation, Corporate Books' },
+        { id: 'rfbt-7.2.11', subject: 'RFBT', topicCode: '7.2.11', description: 'Corporations - Dissolution and Liquidation', notes: 'Modes of Dissolution, Methods of Liquidation' },
+        { id: 'rfbt-7.2.12', subject: 'RFBT', topicCode: '7.2.12', description: 'Corporations - Other Corporations', notes: 'Non-stock, Educational, Religious, One Person Corp (OPC), Foreign Corp' },
+        { id: 'rfbt-7.2.13', subject: 'RFBT', topicCode: '7.2.13', description: 'Corporations - Merger and Consolidation', notes: 'Concept, Plan, Procedure, Effects' },
+        { id: 'rfbt-7.2.14-17', subject: 'RFBT', topicCode: '7.2.14-17', description: 'Corporations - SEC, Governance, Securities', notes: 'Investigations/Penalties, Corp Governance, Securities (Kinds, Reg), SRC Rule 68' },
+        { id: 'rfbt-7.3', subject: 'RFBT', topicCode: '7.3', description: 'Insurance', notes: 'Concept, Elements, Characteristics, Classes, Insurable Interest, Perfection, Rescission, Claims' },
+        { id: 'rfbt-7.4', subject: 'RFBT', topicCode: '7.4', description: 'Cooperatives', notes: 'Organization, Admin, Rights, Membership, Capital, Audit, Funds, Types, Merger, Dissolution' },
+        { id: 'rfbt-8.1', subject: 'RFBT', topicCode: '8.1', description: 'PDIC Law', notes: 'Insurable Deposits, Maximum Liability, Claims' },
+        { id: 'rfbt-8.2', subject: 'RFBT', topicCode: '8.2', description: 'Secrecy of Bank Deposits', notes: 'Purpose, Prohibited Acts, Deposits Covered, Exceptions, Garnishment' },
+        { id: 'rfbt-8.3', subject: 'RFBT', topicCode: '8.3', description: 'Truth in Lending Act', notes: 'Purpose, Obligation of Creditors, Covered/Excluded, Consequences' },
+        { id: 'rfbt-8.4', subject: 'RFBT', topicCode: '8.4', description: 'AMLA Law', notes: 'Purpose, Unlawful Activities, Covered Persons, Money Laundering, Preventive Measures (CDD), Record Keeping' },
+        { id: 'rfbt-8.5', subject: 'RFBT', topicCode: '8.5', description: 'Intellectual Property Law', notes: 'Patents, Trademark, Copyright' },
+        { id: 'rfbt-8.6', subject: 'RFBT', topicCode: '8.6', description: 'Data Privacy Act', notes: 'Scope, Principles, Processing, Security, Rights of Data Subject, Breach Notification' },
+        { id: 'rfbt-8.7', subject: 'RFBT', topicCode: '8.7', description: 'Electronic Commerce Act', notes: 'Principles, Application, Legal Recognition, E-commerce in Gov\'t' },
+        { id: 'rfbt-8.8', subject: 'RFBT', topicCode: '8.8', description: 'Ease of Doing Business Act', notes: 'Policy, Reengineering, Citizen\'s Charter, Streamlined Procedures, Violations' },
+        { id: 'rfbt-8.9', subject: 'RFBT', topicCode: '8.9', description: 'Labor Law (Standards)', notes: 'Basic Pay, Overtime, Night Shift, Holiday, 13th Month, Leaves (SIL, Mat, Pat, Solo)' },
+        { id: 'rfbt-8.10', subject: 'RFBT', topicCode: '8.10', description: 'Social Security (SSS) Law', notes: 'Coverage, Benefits, Contributions (EE/ER, Self), Remittance, Penalties' },
+
+        // --- TAXATION (TAX) ---
+        { id: 'tax-1.0', subject: 'TAX', topicCode: '1.0', description: 'Principles of Taxation', notes: 'Nature, Scope, Evasion vs Avoidance, Situs, Double Taxation, BIR/LGU/PEZA' },
+        { id: 'tax-2.0', subject: 'TAX', topicCode: '2.0', description: 'Tax Remedies', notes: 'Remedies of Government, Remedies of Taxpayer' },
+        { id: 'tax-3.1-3', subject: 'TAX', topicCode: '3.1-3', description: 'Income Tax - Gross Income & Deductions', notes: 'Taxpayer/Base, Gross Income (Inclusions, Exclusions), Deductions (Itemized, OSD)' },
+        { id: 'tax-3.4-6', subject: 'TAX', topicCode: '3.4-6', description: 'Income Tax - Accounting & Tax Due', notes: 'Periods, Methods, Tax Due (Indiv, Corp), Tax Credits' },
+        { id: 'tax-3.7-9', subject: 'TAX', topicCode: '3.7-9', description: 'Income Tax - Filing & Withholding', notes: 'Return Prep/Filing, Withholding Taxes (CWT, FWT, WTax on Gov)' },
+        { id: 'tax-3.10-11', subject: 'TAX', topicCode: '3.10-11', description: 'Income Tax - Special Laws & Tax vs Acctg', notes: 'Senior, PWD, BMBE, Differences (Acctg Income to Taxable Income)' },
+        { id: 'tax-4.1', subject: 'TAX', topicCode: '4.1', description: 'Transfer Tax - Estate Tax', notes: 'Concepts, Gross Estate, Deductions, Net Estate, Tax Due/Credit, Filing' },
+        { id: 'tax-4.2', subject: 'TAX', topicCode: '4.2', description: 'Transfer Tax - Donor\'s Tax', notes: 'Concepts, Transfers, Net Gifts, Tax Due/Credit, Filing' },
+        { id: 'tax-5.1', subject: 'TAX', topicCode: '5.1', description: 'Business Tax - Value-Added Tax (VAT)', notes: 'Nature, Persons, Transactions (12%, 0%, Exempt), Input Tax, VAT Payable, Refund, Filing' },
+        { id: 'tax-5.2', subject: 'TAX', topicCode: '5.2', description: 'Business Tax - Percentage Tax (OPT)', notes: 'Nature, Persons, Transactions, Tax Due, Filing' },
+        { id: 'tax-5.3', subject: 'TAX', topicCode: '5.3', description: 'Business Tax - Special Laws', notes: 'Senior Citizen\'s Law, Magna Carta for PWD' },
+        { id: 'tax-6.0', subject: 'TAX', topicCode: '6.0', description: 'Documentary Stamp Tax (DST)', notes: 'Nature, Transactions, Tax Base/Due, Filing' },
+        { id: 'tax-7.0', subject: 'TAX', topicCode: '7.0', description: 'Excise Tax', notes: 'Nature, Transactions, Tax Base/Due, Filing' },
+        { id: 'tax-8.0', subject: 'TAX', topicCode: '8.0', description: 'Taxation Under Local Government Code', notes: 'Principles, Local Taxes (Real Property, Local Biz), Base/Rates, Remedies' },
+        { id: 'tax-9.1-3', subject: 'TAX', topicCode: '9.1-3', description: 'Preferential Taxation - PEZA, BCDA, OIC', notes: 'Tax Incentives (5% GIT, ITH, VAT, etc.) for PEZA, BCDA, Omnibus Investments Code' },
+        { id: 'tax-9.4', subject: 'TAX', topicCode: '9.4', description: 'Preferential Taxation - Tax Treaties', notes: 'DTA Models (OECD, UN), Tax implications (Royalties, Dividends, Interest, Capital Gains, Biz Profits)' },
+
+    ].map(topic => ({
+        ...topic,
+        materiality: 2, // Default materiality
+        phase1Date: '',
+        p1: null, p2: null, p3: null, p4: null, p5: null, // New practice scores
+        phase3Mastery: 1,
+        review1: '',
+        review2: '',
+        review3: '',
+        notes: topic.notes || '', // Pre-fill notes
+    }));
+
+    // --- GLOBAL STATE ---
+    let topics = [];
+    let overallProgressChart, subjectProgressChart, masteryDistributionChart;
+    const subjectNames = ['FAR', 'AFAR', 'MS', 'AUD', 'TAX', 'RFBT'];
+    const subjectColors = {
+        'FAR': '#e6194B',  // Red
+        'AFAR': '#f58231', // Orange
+        'MS': '#ffe119',   // Yellow
+        'AUD': '#3cb44b',  // Green
+        'TAX': '#4363d8',  // Blue
+        'RFBT': '#911eb4'  // Purple
+    };
+
+    // --- CHART CONFIGURATION ---
+    Chart.defaults.color = 'rgba(245, 245, 247, 0.8)';
+    Chart.defaults.borderColor = 'rgba(68, 68, 68, 0.8)';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.weight = '600';
+
+    // --- DOM ELEMENTS ---
+    const ledgerBody = document.getElementById('ledgerBody');
+    const addTopicForm = document.getElementById('addTopicForm');
+    const subjectFilter = document.getElementById('subjectFilter');
+    const clearDataButton = document.getElementById('clearAllData');
+    const weakestTopicsList = document.getElementById('weakestTopicsList');
+
+    // --- DATA & STATE FUNCTIONS ---
+
+    function saveTopics() {
+        localStorage.setItem('lecpaMasteryLedger', JSON.stringify(topics));
+    }
+
+    function loadTopics() {
+        const storedTopics = localStorage.getItem('lecpaMasteryLedger');
+        topics = storedTopics ? JSON.parse(storedTopics) : [...defaultTopics.map(t => ({...t}))];
+    }
+
+    function handleAddTopic(e) {
+        e.preventDefault();
+        const subject = document.getElementById('newSubject').value;
+        const topicCode = document.getElementById('newTopicCode').value;
+        const description = document.getElementById('newDescription').value;
+        const materiality = parseInt(document.getElementById('newMateriality').value);
+        
+        const newTopic = {
+            id: 'topic-' + Date.now(), // Unique ID
+            subject,
+            topicCode,
+            description,
+            materiality,
+            phase1Date: '',
+            p1: null, p2: null, p3: null, p4: null, p5: null,
+            phase3Mastery: 1,
+            review1: '',
+            review2: '',
+            review3: '',
+            notes: 'Covers: ', // Empty notes for user to fill
+        };
+
+        topics.push(newTopic);
+        saveTopics();
+        renderAll();
+        addTopicForm.reset();
+        document.getElementById('newMateriality').value = 2;
+        
+        subjectFilter.value = subject;
+        renderTable(); 
+    }
+
+    function deleteTopic(id) {
+        if (!confirm('Are you sure you want to delete this topic? This action cannot be undone.')) {
+            return;
+        }
+        topics = topics.filter(topic => topic.id !== id);
+        saveTopics();
+        renderAll();
+    }
+    
+    /**
+     * Calculates the average score for a topic.
+     */
+    function calculateAverage(topic) {
+        const scores = [topic.p1, topic.p2, topic.p3, topic.p4, topic.p5].filter(s => typeof s === 'number');
+        if (scores.length === 0) return '—';
+        const sum = scores.reduce((a, b) => a + b, 0);
+        return (sum / scores.length).toFixed(1) + '%';
+    }
+    
+    /**
+     * Gets the raw average number for sorting.
+     */
+    function getAverageNumber(topic) {
+        const scores = [topic.p1, topic.p2, topic.p3, topic.p4, topic.p5].filter(s => typeof s === 'number');
+        if (scores.length === 0) return 0;
+        const sum = scores.reduce((a, b) => a + b, 0);
+        return (sum / scores.length);
+    }
+
+    window.updateTopic = function(id, field, value) {
+        const topic = topics.find(t => t.id === id);
+        if (topic) {
+            if (['materiality', 'phase3Mastery', 'p1', 'p2', 'p3', 'p4', 'p5'].includes(field)) {
+                topic[field] = value ? parseInt(value) : null;
+            } else {
+                topic[field] = value;
+            }
+            saveTopics();
+            
+            // Live update the mastery color
+            if (field === 'phase3Mastery') {
+                const cell = document.querySelector(`tr[data-id="${id}"] td[data-mastery-level]`);
+                if(cell) cell.setAttribute('data-mastery-level', value);
+            }
+            
+            // Live update the average
+            if (['p1', 'p2', 'p3', 'p4', 'p5'].includes(field)) {
+                const avgCell = document.getElementById(`avg-${id}`);
+                if (avgCell) {
+                    avgCell.textContent = calculateAverage(topic);
+                }
+            }
+            
+            renderDashboard(); // Update dashboard on any change
+        }
+    }
+
+    function clearAllData() {
+        if (confirm('DANGER! Are you sure you want to reset ALL data? This will delete all your progress and custom topics.')) {
+            localStorage.removeItem('lecpaMasteryLedger');
+            topics = [...defaultTopics.map(t => ({...t}))]; // Deep copy defaults
+            renderAll();
+        }
+    }
+
+    // --- RENDERING FUNCTIONS ---
+    
+    function renderAll() {
+        renderTable();
+        renderDashboard();
+    }
+
+    function renderTable() {
+        const filterValue = subjectFilter.value;
+        const filteredTopics = filterValue === 'ALL' 
+            ? topics 
+            : topics.filter(t => t.subject === filterValue);
+
+        ledgerBody.innerHTML = '';
+        
+        filteredTopics.forEach((topic, index) => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', topic.id);
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td style="font-weight: 700; color: ${subjectColors[topic.subject] || '#fff'};">
+                    <input type="text" value="${topic.subject}" onblur="updateTopic('${topic.id}', 'subject', this.value)" style="font-weight: 700; color: ${subjectColors[topic.subject] || '#fff'};">
+                </td>
+                <td><input type="text" value="${topic.topicCode}" onblur="updateTopic('${topic.id}', 'topicCode', this.value)"></td>
+                <td><input type="text" value="${topic.description}" onblur="updateTopic('${topic.id}', 'description', this.value)"></td>
+                <td>
+                    <select onchange="updateTopic('${topic.id}', 'materiality', this.value)" style="font-weight: 600;">
+                        <option value="1" ${topic.materiality === 1 ? 'selected' : ''}>1 (Low)</option>
+                        <option value="2" ${topic.materiality === 2 ? 'selected' : ''}>2 (Medium)</option>
+                        <option value="3" ${topic.materiality === 3 ? 'selected' : ''}>3 (High)</option>
+                    </select>
+                </td>
+                <td><input type="date" value="${topic.phase1Date || ''}" onchange="updateTopic('${topic.id}', 'phase1Date', this.value)"></td>
+                <td><input type="number" min="0" max="100" value="${topic.p1 === null ? '' : topic.p1}" onblur="updateTopic('${topic.id}', 'p1', this.value)"></td>
+                <td><input type="number" min="0" max="100" value="${topic.p2 === null ? '' : topic.p2}" onblur="updateTopic('${topic.id}', 'p2', this.value)"></td>
+                <td><input type="number" min="0" max="100" value="${topic.p3 === null ? '' : topic.p3}" onblur="updateTopic('${topic.id}', 'p3', this.value)"></td>
+                <td><input type="number" min="0" max="100" value="${topic.p4 === null ? '' : topic.p4}" onblur="updateTopic('${topic.id}', 'p4', this.value)"></td>
+                <td><input type="number" min="0" max="100" value="${topic.p5 === null ? '' : topic.p5}" onblur="updateTopic('${topic.id}', 'p5', this.value)"></td>
+                <td><span id="avg-${topic.id}" class="avg-score">${calculateAverage(topic)}</span></td>
+                <td data-mastery-level="${topic.phase3Mastery}">
+                    <select onchange="updateTopic('${topic.id}', 'phase3Mastery', this.value)">
+                        <option value="1" ${topic.phase3Mastery === 1 ? 'selected' : ''}>1: Clueless</option>
+                        <option value="2" ${topic.phase3Mastery === 2 ? 'selected' : ''}>2: Vaguely Familiar</option>
+                        <option value="3" ${topic.phase3Mastery === 3 ? 'selected' : ''}>3: Understand Concept</option>
+                        <option value="4" ${topic.phase3Mastery === 4 ? 'selected' : ''}>4: Confident</option>
+                        <option value="5" ${topic.phase3Mastery === 5 ? 'selected' : ''}>5: Expert</option>
+                    </select>
+                </td>
+                <td><input type="date" value="${topic.review1 || ''}" onchange="updateTopic('${topic.id}', 'review1', this.value)"></td>
+                <td><input type="date" value="${topic.review2 || ''}" onchange="updateTopic('${topic.id}', 'review2', this.value)"></td>
+                <td><input type="date" value="${topic.review3 || ''}" onchange="updateTopic('${topic.id}', 'review3', this.value)"></td>
+                <td><input type="text" class="notes-input" value="${topic.notes || ''}" onblur="updateTopic('${topic.id}', 'notes', this.value)"></td>
+                <td><button class="danger-btn" onclick="deleteTopic('${topic.id}')" style="height: 40px; padding: 5px 15px;">Del</button></td>
+            `;
+            ledgerBody.appendChild(row);
+        });
+    }
+    
+    function renderDashboard() {
+        const totalTopics = topics.length;
+        if (totalTopics === 0) return;
+
+        // 1. Overall Progress (Topics Started)
+        const completedTopics = topics.filter(t => t.phase1Date).length;
+        const overallProgressData = {
+            labels: ['Topics Started', 'Not Started'],
+            datasets: [{
+                data: [completedTopics, totalTopics - completedTopics],
+                backgroundColor: [varGet('--color-success'), '#444'],
+                borderColor: varGet('--color-surface'),
+                borderWidth: 4,
+            }]
+        };
+        updateChart('overallProgressChart', 'doughnut', overallProgressData, { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } });
+
+        // 2. Progress by Subject
+        const subjectProgress = subjectNames.map(name => {
+            const subTopics = topics.filter(t => t.subject === name);
+            const completed = subTopics.filter(t => t.phase1Date).length;
+            return subTopics.length > 0 ? (completed / subTopics.length) * 100 : 0;
+        });
+        const subjectProgressData = {
+            labels: subjectNames,
+            datasets: [{
+                label: '% Topics Started',
+                data: subjectProgress,
+                backgroundColor: Object.values(subjectColors),
+            }]
+        };
+        updateChart('subjectProgressChart', 'bar', subjectProgressData, { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { max: 100, min: 0, grid: { color: varGet('--border-color') } }, y: { grid: { display: false } } } });
+
+        // 3. Mastery Level Distribution
+        const masteryCounts = [0, 0, 0, 0, 0];
+        topics.forEach(t => {
+            masteryCounts[t.phase3Mastery - 1]++;
+        });
+        const masteryData = {
+            labels: ['1: Clueless', '2: Familiar', '3: Understand', '4: Confident', '5: Expert'],
+            datasets: [{
+                data: masteryCounts,
+                backgroundColor: [varGet('--color-danger'), '#fd7e14', varGet('--color-warning'), '#20c997', varGet('--color-primary')],
+                borderColor: varGet('--color-surface'),
+                borderWidth: 4,
+            }]
+        };
+        updateChart('masteryDistributionChart', 'pie', masteryData, { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } });
+
+        // 4. Top Weakest Topics
+        const weakest = [...topics]
+            .filter(t => t.phase3Mastery < 3) // Focus on levels 1 and 2
+            .sort((a, b) => {
+                if (a.phase3Mastery !== b.phase3Mastery) {
+                    return a.phase3Mastery - b.phase3Mastery; // Sort by mastery (1s first)
+                }
+                return getAverageNumber(a) - getAverageNumber(b); // Then by lowest avg score
+            })
+            .slice(0, 10); // Get top 10
+        
+        weakestTopicsList.innerHTML = '';
+        if (weakest.length === 0) {
+            weakestTopicsList.innerHTML = '<li style="border-left-color: var(--color-success); color: var(--color-success); font-weight: 600;">No critical weaknesses found! Keep up the great work!</li>';
+        } else {
+            weakest.forEach(t => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>
+                        <span class="subject-badge" style="color: ${subjectColors[t.subject] || '#fff'}">[${t.subject}]</span>
+                        ${t.description}
+                    </span>
+                    <span class="mastery-badge">Lvl: ${t.phase3Mastery}</span>
+                `;
+                weakestTopicsList.appendChild(li);
+            });
+        }
+    }
+    
+    function updateChart(canvasId, type, data, options) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        let chartInstance;
+        
+        if (canvasId === 'overallProgressChart') {
+            if (overallProgressChart) overallProgressChart.destroy();
+            overallProgressChart = new Chart(ctx, { type, data, options });
+        } else if (canvasId === 'subjectProgressChart') {
+            if (subjectProgressChart) subjectProgressChart.destroy();
+            subjectProgressChart = new Chart(ctx, { type, data, options });
+        } else if (canvasId === 'masteryDistributionChart') {
+            if (masteryDistributionChart) masteryDistributionChart.destroy();
+            masteryDistributionChart = new Chart(ctx, { type, data, options });
+        }
+    }
+
+    // Helper to get CSS variable for Chart.js
+    function varGet(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTopics();
+        renderAll();
+        
+        // --- EVENT LISTENERS ---
+        addTopicForm.addEventListener('submit', handleAddTopic);
+        subjectFilter.addEventListener('change', renderTable);
+        clearDataButton.addEventListener('click', clearAllData);
+    });
+
+</script>
+</body>
+</html>
